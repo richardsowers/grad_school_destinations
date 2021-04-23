@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset='utf-8' />
+  <title>Graduate School Destinations</title>
+  <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.49.0/mapbox-gl.js'></script>
+  <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.49.0/mapbox-gl.css' rel='stylesheet' />
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <div class="explanation">
+    <h1>Graduate Program Destinations</h1>
+    <p> The researchers of the future are current undergraduates.  We try to help our current students start on a career of research; they then have gone to a number of graduate programs (shown below).</p>
+    <p><a href="https://publish.illinois.edu/r-sowers/">https://publish.illinois.edu/r-sowers/</a></p></div>
+
+    <div id="map"></div>
+
+    <div class="explanation">
+    <p>Repository: <a href="https://github.com/richardsowers/grad_school_destinations">https://github.com/richardsowers/grad_school_destinations</a></p></div>
+     <script src="js/index.js"></script>
+<script>
+    mapboxgl.accessToken = "pk.eyJ1IjoicmljaGFyZHNvd2VycyIsImEiOiJjams5dnZtcWYya2RxM3FxcW03YzF0a2pzIn0._YTRBqzmI1sZnBONyEBr3A";
+    var map = new mapboxgl.Map({
+      container: "map",
+      style: "mapbox://styles/richardsowers/cjohy2xza0fjt2rpoysqmsrqi",
+      center: [-98.5, 40],
+      zoom: 3.75
+    });
+     
+
+    var point_feature=JSON.stringify({
+        type: "Feature",
+        geometry: {
+            type: "Point",
+            coordinates: []
+        },
+        properties: {
+            label: null,
+        },
+    });
+    var point_data={
+                type: "FeatureCollection",
+                features: [],
+            };
+
+    var line_feature=JSON.stringify({
+        type: "Feature",
+        geometry: {
+            type: "LineString",
+            coordinates: [],
+        },
+        properties: {
+            count:null
+        },
+    });
+    var line_data={
+                type: "FeatureCollection",
+                features: [],
+            };
+
+    var MAX_CTR=50;
+    Object.keys(data).forEach(function(university,index) {
+        var path=data[university].path; //extract path
+        MAX_CTR=Math.max(MAX_CTR,path.length);
+        var count=data[university].count; // extract count
+        data[university].index=index; //add counter
+        //console.log("length of data for "+university+" is "+path.length);
+
+        var p_f=JSON.parse(point_feature);
+        p_f.geometry.coordinates=path.slice(-1)[0];
+        p_f.properties.label=university;
+        point_data.features.push(p_f)
+
+        var l_f=JSON.parse(line_feature);
+        l_f.properties.count=count;
+        line_data.features.push(l_f)
+    })
+
+    function addnewpoint(n) {
+        for ([university,universitydata] of Object.entries(data)) {
+            var newpoint=universitydata.path.slice(0,n).slice(-1)[0];
+            var index=universitydata.index;
+            if (n>0) {
+                line_data.features[index].geometry.coordinates.push(newpoint);
+            } else {
+                line_data.features[index].geometry.coordinates=[];
+            }
+        };
+    }
+
+
+
+
+
+map.on('load', function () {
+    map.addSource('line_data',{
+            type: "geojson",
+            data:line_data,
+        });
+    map.addLayer({
+        id: "arrows",
+        type: "line",
+        source: 'line_data',
+        layout: {
+            "line-join": "round",
+            "line-cap": "round",
+        },
+        paint: {
+            "line-color": "#0276FD",
+            "line-width": { "type": "identity", "property": "count" },
+        },
+    });
+
+    map.addSource('point_data', {
+            type: "geojson",
+            data: point_data,
+        });
+    map.addLayer({
+        id: "universities",
+        type: "symbol",
+        source: 'point_data',
+        layout: {
+            "text-field": "{label}",
+            "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
+            "text-anchor": "top",
+            "text-size":20,
+            "text-allow-overlap":false,
+        },
+        paint: {
+            "text-color": "red",//#950011"
+        },
+    });
+
+});
+var ctr=1;
+var timer = window.setInterval(function () {
+    addnewpoint(ctr);
+    map.getSource('line_data').setData(line_data);
+    ctr++;
+    if (ctr>1.1*MAX_CTR) {
+        ctr=0;
+    }
+},100);
+
+
+
+</script>
+
+</body>
+</html>
